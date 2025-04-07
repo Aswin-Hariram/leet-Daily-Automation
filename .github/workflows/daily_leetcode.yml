@@ -39,6 +39,6 @@ jobs:
         CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
+        Xvfb :99 &  # Start virtual display
         export DISPLAY=:99
-        Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
         python leetcode_bot.py
