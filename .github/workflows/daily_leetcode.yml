@@ -2,9 +2,9 @@ name: Daily LeetCode Solver
 
 on:
   schedule:
-    # Runs at 8:00 AM UTC every day
+    # Runs at 8:00 AM UTC every day (adjust to your preferred time)
     - cron: '0 8 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   solve:
@@ -24,14 +24,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         sudo apt-get update
-        sudo apt-get install -y xvfb libgbm-dev wget
+        sudo apt-get install -y wget xvfb unzip
         
     - name: Install Chrome
       run: |
-        sudo curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-        sudo echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
-        sudo apt-get -y update
-        sudo apt-get -y install google-chrome-stable
+        sudo apt-get install -y google-chrome-stable
         
     - name: Run LeetCode bot
       env:
@@ -40,5 +37,5 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         export DISPLAY=:99
-        Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
         python leetcode_bot.py
