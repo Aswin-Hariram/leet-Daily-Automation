@@ -30,4 +30,4 @@ jobs:
           CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          xvfb-run --auto-servernum python3 leetcode_bo.py
+          xvfb-run --auto-servernum python3 leetcode_bot.py
