@@ -39,6 +39,7 @@ CSRF_TOKEN = 'rr1LH952ifzbPd4acfroS9o5BghKtnjRnDMhDd2kHxvDOc1LeriOY3ZPpqaJpMTK'
 GEMINI_API_KEY = 'AIzaSyC_VZfdiNXsNXr8kVxz8U4mtTTRG11K9Fs'
 
 # ------------------ Gemini AI Configuration ------------------
+# ------------------ Gemini AI Configuration ------------------
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(model_name="gemini-1.5-pro")
@@ -52,7 +53,7 @@ CONFIG = {
     'timeout': 30,
     'min_delay': 1,
     'max_delay': 3,
-    'problem_url': "https://leetcode.com/problems/two-sum/",
+    'problem_url': None,
     'max_retries': 3,
     'screenshots_dir': "screenshots"
 }
@@ -81,15 +82,9 @@ def setup_driver() -> uc.Chrome:
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--disable-extensions")
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
-
-    try:
-        driver = uc.Chrome(version_main=134,options=options)
-
-        driver.set_page_load_timeout(CONFIG['timeout'])
-        return driver
-    except Exception as e:
-        logger.error(f"Failed to setup driver: {str(e)}")
-        raise
+    driver = uc.Chrome(version_main=134, options=options)
+    driver.set_page_load_timeout(CONFIG['timeout'])
+    return driver
 
 def clear_editor(driver: uc.Chrome, modifier_key: Keys) -> None:
     for attempt in range(CONFIG['max_retries']):
@@ -99,7 +94,6 @@ def clear_editor(driver: uc.Chrome, modifier_key: Keys) -> None:
             )
             editor.click()
             human_delay(0.5, 1)
-
             action = ActionChains(driver)
             action.key_down(modifier_key).send_keys("a").key_up(modifier_key).perform()
             human_delay(0.2, 0.5)
@@ -108,9 +102,9 @@ def clear_editor(driver: uc.Chrome, modifier_key: Keys) -> None:
             return
         except (TimeoutException, ElementClickInterceptedException) as e:
             if attempt == CONFIG['max_retries'] - 1:
-                logger.error(f"Failed to clear editor after {CONFIG['max_retries']} attempts")
+                logger.error("Failed to clear editor after retries")
                 raise
-            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}. Retrying...")
+            logger.warning(f"Retrying clear editor ({attempt + 1}) due to: {str(e)}")
             human_delay(1, 2)
 
 def type_solution(driver: uc.Chrome, solution_code: str) -> None:
@@ -121,20 +115,17 @@ def type_solution(driver: uc.Chrome, solution_code: str) -> None:
         )
         editor.click()
         human_delay(0.5, 1)
-
         try:
             pyperclip.copy(solution_code.strip())
         except pyperclip.PyperclipException:
             logger.warning("⚠️ Clipboard failed. Try `sudo apt install xclip` on Ubuntu.")
             editor.send_keys(solution_code)
             return
-
         action = ActionChains(driver)
         action.key_down(get_modifier_key()).send_keys("v").key_up(get_modifier_key()).perform()
         human_delay(1, 2)
-
         if not editor.get_attribute('value'):
-            logger.warning("Clipboard paste may have failed. Falling back to keystrokes.")
+            logger.warning("Fallback to keystroke typing")
             editor.send_keys(solution_code)
     except Exception as e:
         logger.error(f"Failed to type solution: {str(e)}")
@@ -153,39 +144,35 @@ def submit_solution(driver: uc.Chrome) -> Optional[str]:
             EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-e2e-locator='submission-result']"))
         )
         result = result_element.text
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         status = "success" if "Accepted" in result else "failure"
         screenshot_path = f"{CONFIG['screenshots_dir']}/{status}_{timestamp}.png"
         driver.save_screenshot(screenshot_path)
-        logger.info(f"📸 {status.capitalize()} screenshot saved to {screenshot_path}")
-        logger.info(f"📊 Result: {result}")
+        logger.info(f"📸 Screenshot saved: {screenshot_path}")
         return result
     except TimeoutException:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_path = f"{CONFIG['screenshots_dir']}/error_{timestamp}.png"
         driver.save_screenshot(screenshot_path)
-        logger.error(f"⚠️ Error screenshot saved to {screenshot_path}")
+        logger.error(f"⚠️ Timeout - screenshot saved to {screenshot_path}")
         raise
 
 def handle_verification(driver: uc.Chrome) -> None:
     try:
         if "human" in driver.title.lower() or "security" in driver.title.lower():
-            logger.warning("⚠️ Verification required. Please complete manually...")
+            logger.warning("⚠️ Captcha or human verification required. Waiting...")
             WebDriverWait(driver, 120).until_not(
                 lambda d: "human" in d.title.lower() or "security" in d.title.lower()
             )
             human_delay(2, 3)
     except Exception as e:
-        logger.warning(f"Verification check failed: {str(e)}")
+        logger.warning(f"Verification handling issue: {str(e)}")
 
 def inject_cookies(driver: uc.Chrome) -> None:
     if not LEETCODE_SESSION or not CSRF_TOKEN:
-        raise ValueError("Missing required environment variables: LEETCODE_SESSION or CSRF_TOKEN")
-
+        raise ValueError("Missing cookies (LEETCODE_SESSION or CSRF_TOKEN)")
     driver.get("https://leetcode.com")
     human_delay(1, 2)
-
     driver.add_cookie({
         'name': 'LEETCODE_SESSION',
         'value': LEETCODE_SESSION,
@@ -200,7 +187,7 @@ def inject_cookies(driver: uc.Chrome) -> None:
         'secure': True,
         'path': '/'
     })
-    logger.info("🔑 Cookies injected. Refreshing page...")
+    logger.info("🔑 Cookies injected. Refreshing...")
     driver.refresh()
     human_delay(2, 3)
 
@@ -208,13 +195,13 @@ def get_solution_from_gemini(problem_url: str) -> str:
     try:
         problem_name = problem_url.split('/')[-2]
         prompt = f"""Please provide a C++ solution for the LeetCode problem '{problem_name}'.
-        Requirements:
-        1. Complete implementation with all necessary includes
-        2. Optimal time and space complexity
-        3. Clean, well-commented code
-        4. Ready to submit on LeetCode
+Requirements:
+1. Complete implementation with all necessary includes
+2. Optimal time and space complexity
+3. Clean, well-commented code
+4. Ready to submit on LeetCode
 
-        Return only the code without any additional explanation or markdown formatting."""
+Return only the code without any additional explanation or markdown formatting."""
 
         logger.info(f"🤖 Requesting solution for: {problem_name}")
         response = model.generate_content(prompt)
@@ -233,14 +220,11 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
         try:
             driver.get("https://leetcode.com/problemset/")
             human_delay(2, 4)
-            #today = datetime.now().day
-            today=5
+            today = datetime.now().day
             logger.info(f"🔍 Looking for today's problem (Day {today})...")
-
             WebDriverWait(driver, CONFIG['timeout']).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/problems/']"))
             )
-
             problem_links = driver.find_elements(By.CSS_SELECTOR, "a[href*='/problems/']")
             for link in problem_links:
                 try:
@@ -264,18 +248,14 @@ def solve_problem(problem_url: str = None) -> None:
     ensure_directory(CONFIG['screenshots_dir'])
     driver = None
     display = None
-
     try:
-        # Start virtual display
         display = Display(visible=0, size=(1920, 1080))
         display.start()
 
         driver = setup_driver()
-        modifier_key = get_modifier_key()
         logger.info("🚀 Starting LeetCode session...")
         driver.get("https://leetcode.com")
         human_delay(2, 4)
-
         handle_verification(driver)
         inject_cookies(driver)
 
@@ -290,7 +270,7 @@ def solve_problem(problem_url: str = None) -> None:
         if model:
             solution_code = get_solution_from_gemini(problem_url)
         else:
-            logger.warning("Using default solution since Gemini API key not available")
+            logger.warning("Fallback to default solution")
             solution_code = """class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
@@ -312,7 +292,6 @@ public:
 
         logger.info("✍️ Preparing to submit solution...")
         type_solution(driver, solution_code)
-
         result = submit_solution(driver)
         logger.info(f"🎉 Final result: {result}")
 
@@ -330,7 +309,7 @@ public:
             display.stop()
             logger.info("🖥️ Virtual display stopped")
 
-# ------------------ Run ------------------
+# ------------------ Run Script ------------------
 if __name__ == "__main__":
     try:
         solve_problem()
