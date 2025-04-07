@@ -1,0 +1,5 @@
+undetected-chromedriver
+selenium
+python-dotenv
+pyperclip
+google-generativeai
