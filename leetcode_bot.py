@@ -69,7 +69,7 @@ def human_delay(min_sec: float = CONFIG['min_delay'], max_sec: float = CONFIG['m
     time.sleep(random.uniform(min_sec, max_sec))
 
 def setup_driver() -> uc.Chrome:
-    """Initialize and configure the Chrome WebDriver."""
+    """Initialize and configure the Chrome WebDriver with version management."""
     options = uc.ChromeOptions()
     
     if CONFIG['headless']:
@@ -81,11 +81,13 @@ def setup_driver() -> uc.Chrome:
     options.add_argument("--window-size=1920,1080")
 
     try:
+        # Force specific Chrome version or let undetected_chromedriver handle it
         driver = uc.Chrome(
             options=options,
             headless=CONFIG['headless'],
             use_subprocess=True,
-            auto_install=True
+            version_main=135,  # Force ChromeDriver 135
+            browser_executable_path="/usr/bin/google-chrome-stable"  # Explicit path
         )
         driver.set_page_load_timeout(CONFIG['timeout'])
         return driver
