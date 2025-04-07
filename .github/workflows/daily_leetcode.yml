@@ -2,34 +2,32 @@ name: Daily LeetCode Solver
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Runs daily at 9:00 AM IST (3:00 AM UTC)
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+    - cron: "0 3 * * *" # 9 AM IST = 3:00 UTC
+  workflow_dispatch:
 
 jobs:
-  run-leetcode-bot:
+  solve_leetcode:
     runs-on: ubuntu-latest
 
-    env:
-      LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
-      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb xclip
-          python -m pip install --upgrade pip
+          sudo apt update
+          sudo apt install -y xvfb x11-utils xclip
           pip install -r requirements.txt
 
-      - name: Run LeetCode Bot
+      - name: Run LeetCode Auto Solver
+        env:
+          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
+          CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          xvfb-run python leetcode_bot.py
+          xvfb-run --auto-servernum python3 leetcode_bo.py

@@ -82,7 +82,8 @@ def setup_driver() -> uc.Chrome:
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
 
     try:
-        driver = uc.Chrome(options=options)
+        driver = uc.Chrome(version_main=134,options=options)
+
         driver.set_page_load_timeout(CONFIG['timeout'])
         return driver
     except Exception as e:
