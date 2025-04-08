@@ -33,9 +33,8 @@ logger = logging.getLogger(__name__)
 
 # ------------------ Environment Variables ------------------
 load_dotenv()
-LEETCODE_SESSION = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTUxNTg2ODYiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJhbGxhdXRoLmFjY291bnQuYXV0aF9iYWNrZW5kcy5BdXRoZW50aWNhdGlvbkJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJiYzE2Y2Y0OGFjMWVhNGE3MDYwZmM0MjQ0Y2FmMmQ0MGI0ZDE1MjkxMjRjYjkxZDMwNWI3OGI2MGYzMTlkMzBlIiwic2Vzc2lvbl91dWlkIjoiYjBiZDk4MGUiLCJpZCI6MTUxNTg2ODYsImVtYWlsIjoiYXN3aW5jc2Vza2N0QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoiUTJrRUtoMDBzWSIsInVzZXJfc2x1ZyI6IlEya0VLaDAwc1kiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jb20vdXNlcnMvUTJrRUtoMDBzWS9hdmF0YXJfMTcyOTM0MjE0Ny5wbmciLCJyZWZyZXNoZWRfYXQiOjE3NDQwMjYxNjgsImlwIjoiMTAzLjE4Ni4xNTEuMjEwIiwiaWRlbnRpdHkiOiIwMGU4ZjI4NjU3OTc0NjlkZDRiZmQ2Y2IyY2RhYjhlZiIsImRldmljZV93aXRoX2lwIjpbIjViYzVmZGJjZjBiMTVkODIxYWVhZmM4NDY5NjMzZTUyIiwiMTAzLjE4Ni4xNTEuMjEwIl0sIl9zZXNzaW9uX2V4cGlyeSI6MTIwOTYwMH0.Z9kqmgUlddl5fhmbC11F6SNUQFoCwNjf2CLqPBOWHeE'
-
-CSRF_TOKEN = 'rr1LH952ifzbPd4acfroS9o5BghKtnjRnDMhDd2kHxvDOc1LeriOY3ZPpqaJpMTK'
+LEETCODE_SESSION = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTUxNTg2ODYiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJhbGxhdXRoLmFjY291bnQuYXV0aF9iYWNrZW5kcy5BdXRoZW50aWNhdGlvbkJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJiYzE2Y2Y0OGFjMWVhNGE3MDYwZmM0MjQ0Y2FmMmQ0MGI0ZDE1MjkxMjRjYjkxZDMwNWI3OGI2MGYzMTlkMzBlIiwic2Vzc2lvbl91dWlkIjoiZWJhZGEzNjciLCJpZCI6MTUxNTg2ODYsImVtYWlsIjoiYXN3aW5jc2Vza2N0QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoiUTJrRUtoMDBzWSIsInVzZXJfc2x1ZyI6IlEya0VLaDAwc1kiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jb20vdXNlcnMvUTJrRUtoMDBzWS9hdmF0YXJfMTcyOTM0MjE0Ny5wbmciLCJyZWZyZXNoZWRfYXQiOjE3NDQxMDE5NzAsImlwIjoiMTAzLjEzMC45MS4xODYiLCJpZGVudGl0eSI6IjgzMTNkNTlhYjQ1ODJiMjk1MThiMmJjMTc3YjIzNTkxIiwiZGV2aWNlX3dpdGhfaXAiOlsiNjFiODI5YmZjMjNkYmRmNjQ3NGUwN2JhZDJmOWEwYmMiLCIxMDMuMTMwLjkxLjE4NiJdLCJfc2Vzc2lvbl9leHBpcnkiOjEyMDk2MDB9.aBHHhol7VKOJ8F6PYw87IryMiiY9P08IsruYPBLDYX0'
+CSRF_TOKEN = 'xdI4zFIMJFaIYGvXCpeC1axhmFa8JwOnMJy5lF0RsOnOJnoQkshA4cwT2gNFWUDv'
 GEMINI_API_KEY = 'AIzaSyC_VZfdiNXsNXr8kVxz8U4mtTTRG11K9Fs'
 
 # ------------------ Gemini AI Configuration ------------------
@@ -220,7 +219,7 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
         try:
             driver.get("https://leetcode.com/problemset/")
             human_delay(2, 4)
-            today = datetime.now().day
+            today = 5
             logger.info(f"🔍 Looking for today's problem (Day {today})...")
             WebDriverWait(driver, CONFIG['timeout']).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/problems/']"))
