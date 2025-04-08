@@ -33,11 +33,10 @@ logger = logging.getLogger(__name__)
 
 # ------------------ Environment Variables ------------------
 load_dotenv()
-LEETCODE_SESSION = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTUxNTg2ODYiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJhbGxhdXRoLmFjY291bnQuYXV0aF9iYWNrZW5kcy5BdXRoZW50aWNhdGlvbkJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJiYzE2Y2Y0OGFjMWVhNGE3MDYwZmM0MjQ0Y2FmMmQ0MGI0ZDE1MjkxMjRjYjkxZDMwNWI3OGI2MGYzMTlkMzBlIiwic2Vzc2lvbl91dWlkIjoiZWJhZGEzNjciLCJpZCI6MTUxNTg2ODYsImVtYWlsIjoiYXN3aW5jc2Vza2N0QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoiUTJrRUtoMDBzWSIsInVzZXJfc2x1ZyI6IlEya0VLaDAwc1kiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jb20vdXNlcnMvUTJrRUtoMDBzWS9hdmF0YXJfMTcyOTM0MjE0Ny5wbmciLCJyZWZyZXNoZWRfYXQiOjE3NDQxMDE5NzAsImlwIjoiMTAzLjEzMC45MS4xODYiLCJpZGVudGl0eSI6IjgzMTNkNTlhYjQ1ODJiMjk1MThiMmJjMTc3YjIzNTkxIiwiZGV2aWNlX3dpdGhfaXAiOlsiNjFiODI5YmZjMjNkYmRmNjQ3NGUwN2JhZDJmOWEwYmMiLCIxMDMuMTMwLjkxLjE4NiJdLCJfc2Vzc2lvbl9leHBpcnkiOjEyMDk2MDB9.aBHHhol7VKOJ8F6PYw87IryMiiY9P08IsruYPBLDYX0'
-CSRF_TOKEN = 'xdI4zFIMJFaIYGvXCpeC1axhmFa8JwOnMJy5lF0RsOnOJnoQkshA4cwT2gNFWUDv'
-GEMINI_API_KEY = 'AIzaSyC_VZfdiNXsNXr8kVxz8U4mtTTRG11K9Fs'
+LEETCODE_SESSION = os.getenv('LEETCODE_SESSION')
+CSRF_TOKEN = os.getenv('CSRF_TOKEN')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
-# ------------------ Gemini AI Configuration ------------------
 # ------------------ Gemini AI Configuration ------------------
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -48,7 +47,7 @@ else:
 
 # ------------------ Config ------------------
 CONFIG = {
-    'headless': False,
+    'headless': True,  # Set to True for Docker environment
     'timeout': 30,
     'min_delay': 1,
     'max_delay': 3,
@@ -81,7 +80,11 @@ def setup_driver() -> uc.Chrome:
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--disable-extensions")
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
-    driver = uc.Chrome(version_main=134, options=options)
+    
+    # Increased shared memory for Docker
+    options.add_argument("--disable-dev-shm-usage")
+    
+    driver = uc.Chrome(options=options)
     driver.set_page_load_timeout(CONFIG['timeout'])
     return driver
 
@@ -114,18 +117,12 @@ def type_solution(driver: uc.Chrome, solution_code: str) -> None:
         )
         editor.click()
         human_delay(0.5, 1)
-        try:
-            pyperclip.copy(solution_code.strip())
-        except pyperclip.PyperclipException:
-            logger.warning("⚠️ Clipboard failed. Try `sudo apt install xclip` on Ubuntu.")
-            editor.send_keys(solution_code)
-            return
-        action = ActionChains(driver)
-        action.key_down(get_modifier_key()).send_keys("v").key_up(get_modifier_key()).perform()
+        
+        # In Docker, just use sendkeys directly instead of clipboard
+        logger.info("Using direct typing method in container")
+        editor.send_keys(solution_code)
         human_delay(1, 2)
-        if not editor.get_attribute('value'):
-            logger.warning("Fallback to keystroke typing")
-            editor.send_keys(solution_code)
+        
     except Exception as e:
         logger.error(f"Failed to type solution: {str(e)}")
         raise
@@ -219,7 +216,11 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
         try:
             driver.get("https://leetcode.com/problemset/")
             human_delay(2, 4)
-            today = 5
+            
+            # Dynamic date calculation
+            from datetime import datetime
+            today = datetime.now().day
+            
             logger.info(f"🔍 Looking for today's problem (Day {today})...")
             WebDriverWait(driver, CONFIG['timeout']).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/problems/']"))
@@ -235,6 +236,17 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
                             return problem_url
                 except NoSuchElementException:
                     continue
+            
+            # Fallback: If by day doesn't work, try to find "Daily Challenge"
+            challenge_elements = driver.find_elements(By.XPATH, "//div[contains(text(), 'Daily Challenge')]")
+            if challenge_elements:
+                for element in challenge_elements:
+                    parent = element.find_element(By.XPATH, "./ancestor::a[contains(@href, '/problems/')]")
+                    if parent:
+                        problem_url = parent.get_attribute('href')
+                        logger.info(f"📅 Found daily challenge: {problem_url}")
+                        return problem_url
+                        
             raise ValueError(f"Could not find problem for day {today}")
         except Exception as e:
             if attempt == CONFIG['max_retries'] - 1:
@@ -245,12 +257,15 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
 
 def solve_problem(problem_url: str = None) -> None:
     ensure_directory(CONFIG['screenshots_dir'])
-    driver = None
-    display = None
-    try:
+    
+    # Start virtual display for headless mode
+    if CONFIG['headless']:
         display = Display(visible=0, size=(1920, 1080))
         display.start()
-
+        logger.info("Started virtual display")
+    
+    driver = None
+    try:
         driver = setup_driver()
         logger.info("🚀 Starting LeetCode session...")
         driver.get("https://leetcode.com")
@@ -303,10 +318,11 @@ public:
     finally:
         if driver:
             driver.quit()
-            logger.info("🛑 Driver closed")
-        if display:
+            logger.info("🛑 Browser closed.")
+        
+        if CONFIG['headless'] and 'display' in locals():
             display.stop()
-            logger.info("🖥️ Virtual display stopped")
+            logger.info("Virtual display stopped")
 
 # ------------------ Run Script ------------------
 if __name__ == "__main__":

@@ -2,32 +2,43 @@ name: Daily LeetCode Solver
 
 on:
   schedule:
-    - cron: "0 3 * * *" # 9 AM IST = 3:00 UTC
+    # Run at 1:00 AM UTC daily
+    - cron: '0 1 * * *'
+  # Allow manual trigger
   workflow_dispatch:
 
 jobs:
-  solve_leetcode:
+  solve-leetcode:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Create .env file
+        run: |
+          echo "LEETCODE_SESSION=${{ secrets.LEETCODE_SESSION }}" > .env
+          echo "CSRF_TOKEN=${{ secrets.CSRF_TOKEN }}" >> .env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+      
+      - name: Build and run Docker container
+        run: |
+          docker build -t leetcode-bot .
+          docker run --shm-size=2g -v ${{ github.workspace }}/screenshots:/app/screenshots leetcode-bot
+      
+      - name: Upload screenshot artifacts
+        uses: actions/upload-artifact@v3
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y xvfb x11-utils xclip
-          pip install -r requirements.txt
-
-      - name: Run LeetCode Auto Solver
-        env:
-          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
-          CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          xvfb-run --auto-servernum python3 leetcode_bot.py
+          name: screenshots
+          path: screenshots/
+          retention-days: 7
+      
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: leetcode_bot.log
+          retention-days: 7
