@@ -1,3 +1,4 @@
+name: Daily LeetCode Solver
 
 on:
   schedule:
