@@ -59,14 +59,14 @@ jobs:
 
     - name: Upload screenshots
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: leetcode-screenshots
         path: screenshots/*.png
 
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: leetcode-logs
         path: leetcode_bot.log
