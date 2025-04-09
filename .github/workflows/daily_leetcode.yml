@@ -1,33 +1,62 @@
-name: Daily LeetCode Solver
+name: LeetCode Daily Bot
 
 on:
   schedule:
-    - cron: "0 3 * * *" # 9 AM IST = 3:00 UTC
-  workflow_dispatch:
+    - cron: '0 9 * * *'  # Runs at 9 AM UTC every day
+  workflow_dispatch:  # Allow manual triggers
 
 jobs:
-  solve_leetcode:
+  run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Set a timeout to prevent hanging
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y xvfb x11-utils xclip
-          pip install -r requirements.txt
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xclip xvfb  # Required for clipboard and virtual display
 
-      - name: Run LeetCode Auto Solver
-        env:
-          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
-          CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          xvfb-run --auto-servernum python3 leetcode_bot.py
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        if [ -f setup.py ]; then pip install -e .; fi
+
+    - name: Create screenshots directory
+      run: mkdir -p screenshots
+
+    - name: Run LeetCode Bot
+      env:
+        LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
+        CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        xvfb-run -a python -c "
+        import os
+        from leetcode_bot import solve_problem
+        solve_problem()
+        "
+
+    - name: Upload screenshots
+      if: always()  # Always upload screenshots even if job fails
+      uses: actions/upload-artifact@v3
+      with:
+        name: leetcode-screenshots
+        path: screenshots/
+        retention-days: 7
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: leetcode-logs
+        path: leetcode_bot.log
+        retention-days: 7

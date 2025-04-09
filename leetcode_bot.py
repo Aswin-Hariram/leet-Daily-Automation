@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 
 # ------------------ Environment Variables ------------------
 load_dotenv()
-LEETCODE_SESSION = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTUxNTg2ODYiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJhbGxhdXRoLmFjY291bnQuYXV0aF9iYWNrZW5kcy5BdXRoZW50aWNhdGlvbkJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJiYzE2Y2Y0OGFjMWVhNGE3MDYwZmM0MjQ0Y2FmMmQ0MGI0ZDE1MjkxMjRjYjkxZDMwNWI3OGI2MGYzMTlkMzBlIiwic2Vzc2lvbl91dWlkIjoiOTUwMjZhY2UiLCJpZCI6MTUxNTg2ODYsImVtYWlsIjoiYXN3aW5jc2Vza2N0QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoiUTJrRUtoMDBzWSIsInVzZXJfc2x1ZyI6IlEya0VLaDAwc1kiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jb20vdXNlcnMvUTJrRUtoMDBzWS9hdmF0YXJfMTcyOTM0MjE0Ny5wbmciLCJyZWZyZXNoZWRfYXQiOjE3NDQxMDM2MzYsImlwIjoiMTAzLjEzMC45MS4xODYiLCJpZGVudGl0eSI6IjgzMTNkNTlhYjQ1ODJiMjk1MThiMmJjMTc3YjIzNTkxIiwiZGV2aWNlX3dpdGhfaXAiOlsiNjFiODI5YmZjMjNkYmRmNjQ3NGUwN2JhZDJmOWEwYmMiLCIxMDMuMTMwLjkxLjE4NiJdfQ.MLw-W6ZDtB2rRKLc3If8xwjOvV6Xl-eV604QEnE-ZNw'
-CSRF_TOKEN = '546OrDKZcTiY32iOXikMlMUgL68UKq7MPav3oHegwnScnBJWXwcAdQ8lFwpSsk5P'
+LEETCODE_SESSION = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTUxNTg2ODYiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJhbGxhdXRoLmFjY291bnQuYXV0aF9iYWNrZW5kcy5BdXRoZW50aWNhdGlvbkJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJiYzE2Y2Y0OGFjMWVhNGE3MDYwZmM0MjQ0Y2FmMmQ0MGI0ZDE1MjkxMjRjYjkxZDMwNWI3OGI2MGYzMTlkMzBlIiwic2Vzc2lvbl91dWlkIjoiMDNlOWZmZGEiLCJpZCI6MTUxNTg2ODYsImVtYWlsIjoiYXN3aW5jc2Vza2N0QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoiUTJrRUtoMDBzWSIsInVzZXJfc2x1ZyI6IlEya0VLaDAwc1kiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jb20vdXNlcnMvUTJrRUtoMDBzWS9hdmF0YXJfMTcyOTM0MjE0Ny5wbmciLCJyZWZyZXNoZWRfYXQiOjE3NDQyMDU3NjEsImlwIjoiMTAzLjEzMC4yMDQuNjciLCJpZGVudGl0eSI6IjgzMTNkNTlhYjQ1ODJiMjk1MThiMmJjMTc3YjIzNTkxIiwiZGV2aWNlX3dpdGhfaXAiOlsiNjFiODI5YmZjMjNkYmRmNjQ3NGUwN2JhZDJmOWEwYmMiLCIxMDMuMTMwLjIwNC42NyJdfQ.MOInze_m5LXYCkO7mlvNU3H8vxN6_qexFy3NnHXdV1s'
+CSRF_TOKEN = 'SlbX6aoxfIeMp1w6osSXcHip0Mru8xDpcx7KOmyXEnxJbhDPMkcRLQjVidldgan4'
 GEMINI_API_KEY = 'AIzaSyC_VZfdiNXsNXr8kVxz8U4mtTTRG11K9Fs'
 
 # ------------------ Gemini AI Configuration ------------------
@@ -189,6 +189,10 @@ def inject_cookies(driver: uc.Chrome) -> None:
     logger.info("🔑 Cookies injected. Refreshing...")
     driver.refresh()
     human_delay(2, 3)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    screenshot_path = f"{CONFIG['screenshots_dir']}/after_login_{timestamp}.png"
+    driver.save_screenshot(screenshot_path)
+    logger.info(f"📸 Saved post-login screenshot: {screenshot_path}")
 
 def get_solution_from_gemini(problem_url: str) -> str:
     try:
