@@ -222,7 +222,7 @@ def get_todays_problem_url(driver: uc.Chrome) -> str:
         try:
             driver.get("https://leetcode.com/problemset/")
             human_delay(2, 4)
-            today = 5
+            today = 9
             logger.info(f"🔍 Looking for today's problem (Day {today})...")
             WebDriverWait(driver, CONFIG['timeout']).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/problems/']"))
