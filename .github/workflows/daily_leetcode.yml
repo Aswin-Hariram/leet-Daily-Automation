@@ -1,57 +1,68 @@
-name: LeetCode Daily Bot
+name: LeetCode Bot
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   schedule:
-    - cron: '0 9 * * *'  # Runs at 9 AM UTC every day
-  workflow_dispatch:  # Allow manual triggers
+    # Run daily at 8:00 UTC (adjust as needed)
+    - cron: '0 8 * * *'
+  workflow_dispatch:
 
 jobs:
-  run-bot:
+  leetcode-bot:
+    name: Run LeetCode Bot
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Set a timeout to prevent hanging
+    timeout-minutes: 30
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y xclip xvfb  # Required for clipboard and virtual display
+        sudo apt-get install -y xclip xvfb libgbm-dev wget
 
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        if [ -f setup.py ]; then pip install -e .; fi
 
-    - name: Create screenshots directory
-      run: mkdir -p screenshots
+    - name: Cache Chrome binary
+      id: cache-chrome
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/chromium
+        key: ${{ runner.os }}-chromium
 
-    - name: Run LeetCode Bot
+    - name: Install Chrome
+      if: steps.cache-chrome.outputs.cache-hit != 'true'
+      run: |
+        sudo apt-get install -y chromium-browser
+
+    - name: Run LeetCode Bot (Test Mode)
       env:
         LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
         CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        xvfb-run -a python -c "
-        import os
-        from leetcode_bot import solve_problem
-        solve_problem()
-        "
+        Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+        export DISPLAY=:99
+        python -c "from leetcode_bot import CONFIG; CONFIG.update({'headless': True, 'problem_url': 'https://leetcode.com/problems/two-sum/'}); import leetcode_bot; leetcode_bot.solve_problem()"
 
     - name: Upload screenshots
-      if: always()  # Always upload screenshots even if job fails
+      if: always()
       uses: actions/upload-artifact@v3
       with:
         name: leetcode-screenshots
-        path: screenshots/
-        retention-days: 7
+        path: screenshots/*.png
 
     - name: Upload logs
       if: always()
@@ -59,4 +70,3 @@ jobs:
       with:
         name: leetcode-logs
         path: leetcode_bot.log
-        retention-days: 7
